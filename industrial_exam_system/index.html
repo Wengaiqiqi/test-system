@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工业互联网考试系统</title>
+  <style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+        color: #333;
+    }
+    .container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+    }
+    .question {
+        margin-bottom: 25px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .question-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #2c3e50;
+    }
+    .options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .option {
+        margin-left: 5px;
+    }
+    .option label {
+        cursor: pointer;
+        display: inline-block;
+        width: 100%;
+    }
+    .option input[type="radio"] {
+        margin-right: 8px;
+    }
+    .btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        display: block;
+        margin: 20px auto;
+        transition: background-color 0.3s;
+    }
+    .btn:hover {
+        background-color: #2980b9;
+    }
+    #results {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        display: none;
+    }
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .correct {
+        color: #27ae60;
+    }
+    .incorrect {
+        color: #e74c3c;
+    }
+    .filter-controls {
+        margin: 15px 0;
+        text-align: center;
+    }
+    .filter-btn {
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        padding: 5px 10px;
+        margin: 0 5px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .filter-btn.active {
+        background-color: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+    .hidden {
+        display: none;
+    }
+    .status {
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    .progress {
+        margin: 20px 0;
+        height: 10px;
+        background-color: #eee;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background-color: #3498db;
+        width: 0;
+        transition: width 0.5s;
+    }
+    /* 密码保护和题目数量选择样式 */
+    .password-container, .question-count-container {
+        text-align: center;
+        margin: 50px 0;
+    }
+    .password-input, .question-count-input {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        width: 200px;
+        margin: 10px 0;
+    }
+    .error-message {
+        color: #e74c3c;
+        margin-top: 10px;
+        display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 密码保护层 -->
+  <div id="password-protection" class="password-container">
+      <h2>请输入密码访问考试系统</h2>
+      <input type="password" id="password-input" class="password-input" placeholder="密码">
+      <button id="password-submit" class="btn">提交</button>
+      <div id="error-message" class="error-message">密码错误，请重试！</div>
+  </div>
+
+  <!-- 题目数量选择层 -->
+  <div id="question-count-selection" class="question-count-container hidden">
+      <h2>请选择练习题目的数量</h2>
+      <p>题库总数：235题</p>
+      <input type="number" id="question-count-input" class="question-count-input" min="1" max="200" placeholder="请输入题目数量">
+      <button id="question-count-submit" class="btn">开始练习</button>
+      <div id="count-error-message" class="error-message">请输入有效的题目数量！</div>
+  </div>
+
+  <!-- 考试系统内容 -->
+  <div id="exam-content" class="hidden">
+      <div class="container">
+          <h1>工业互联网考试系统</h1>
+          
+          <div class="progress">
+              <div class="progress-bar" id="progress-bar"></div>
+          </div>
+          
+          <div id="exam-form">
+              <!-- 题目将由 JavaScript 动态生成 -->
+          </div>
+          
+          <button id="submit-btn" class="btn">提交答案</button>
+          
+          <div id="results">
+              <div class="result-header">
+                  <h2>测试结果</h2>
+                  <div>
+                      <span id="score">0</span>/<span id="total">0</span>
+                      <span>正确率: <span id="accuracy">0%</span></span>
+                  </div>
+              </div>
+              
+              <div class="filter-controls">
+                  <button class="filter-btn active" data-filter="all">全部题目</button>
+                  <button class="filter-btn" data-filter="incorrect">错题复习</button>
+              </div>
+              
+              <div id="result-details">
+                  <!-- 结果详情将由 JavaScript 动态生成 -->
+              </div>
+              
+              <div style="text-align: center; margin-top: 20px;">
+                  <button id="restart-btn" class="btn">重新测试</button>
+                  <button id="reselect-btn" class="btn">重新选择题目数</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <script>
+      // 原始题库（这里需要您自行添加题目）
+      let originalQuestions = [    {
+      id: 16,
+      question: "( ) 可以基于设备全生命周期的运行数据，提前预测设备关键部件的变化趋势、产品寿命和潜在风险，提前预测设备零部件的损坏时间，主动提前进行维护服务。",
+      options: ["A. 设备资产全生命周期管理", "B. 设备状态监测", "C. 设备故障诊断", "D. 预测性维护"],
+      answer: "D"
+    },
+    {
+      id: 17,
+      question: "2017年11月国务院发布的《关于深化“互联网+先进制造业”发展工业互联网的指导意见》明确要构建的三大功能体系是指：",
+      options: ["A. 网络", "B. 平台", "C. 安全", "D. 以上全是"],
+      answer: "D"
+    },
+    {
+      id: 18,
+      question: "5G与工业互联网融合出现的几大类典型场景是哪几类？",
+      options: [
+        "A. 5G+超高清视频、AR、VR、无人机、云端机器人、远程控制、机器视觉、云化AGV",
+        "B. 5G+超高清视频、AR、VR、无人机、云端机器人、自动化控制、机器视觉、云化AGV",
+        "C. 5G+超高清视频、AR、VR、无人机、工业机器人、远程控制、机器视觉、云化AGV",
+        "D. 5G+超高清视频、AR、VR、无人机、云端机器人、远程控制、机器学习、云化AGV"
+      ],
+      answer: "A"
+    },
+    {
+      id: 19,
+      question: "InfluxDB时序数据库引擎主要包括以下哪些组件？",
+      options: ["A. 写入前日志", "B. 缓存", "C. 时间序列合并树", "D. 以上全是"],
+      answer: "D"
+    },
+    {
+      id: 20,
+      question: "IoT是什么的缩写？",
+      options: ["A. Internet of Tables", "B. Internet of Things", "C. Internet of Tools", "D. Internet of Toys"],
+      answer: "B"
+    },
+    {
+      id: 21,
+      question: "OPC UA的五大特性是什么？",
+      options: [
+        "A. 功能完整性、平台无关性、安全性、可扩展性、信息模型独立性",
+        "B. 功能完整性、平台无关性、安全性、可扩展性、信息模型完整性",
+        "C. 功能完整性、平台无关性、安全性、可扩展性、信息模型独立性",
+        "D. 功能完整性、平台无关性、安全性、可扩展性、信息模型完整性"
+      ],
+      answer: "C"
+    },
+    {
+      id: 22,
+      question: "PLC的所有实验中，三色灯的所有参数采集时，数据类型选择？",
+      options: ["A. Float", "B. Boolean", "C. Integer", "D. Double"],
+      answer: "B"
+    },
+    {
+      id: 23,
+      question: "本次使用的PLC，中央处理器模块包含下列哪些功能？",
+      options: [
+        "A. 14路数字量输入",
+        "B. 10路数字量输出",
+        "C. 两路0-20V电压信号的模拟量输入",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 24,
+      question: "边缘计算的主要目标是？",
+      options: [
+        "A. 提高数据中心效率",
+        "B. 减少网络带宽使用",
+        "C. 提高计算性能",
+        "D. 将计算资源推向用户端"
+      ],
+      answer: "B"
+    },
+    {
+      id: 25,
+      question: "边缘计算对于哪种应用场景的安全性要求尤为重要？",
+      options: ["A. 游戏开发", "B. 医疗保健", "C. 大规模数据存储", "D. 传统企业文件管理"],
+      answer: "B"
+    },
+    {
+      id: 26,
+      question: "边缘计算对于哪种应用场景的实时性要求尤为重要？",
+      options: ["A. 社交媒体", "B. 大规模数据分析", "C. 医疗诊断", "D. 电子邮件服务"],
+      answer: "C"
+    },
+    {
+      id: 27,
+      question: "边缘计算对于提高大规模数据处理效率有何优势？",
+      options: [
+        "A. 减少数据传输至云端的频率",
+        "B. 在云端进行所有数据分析",
+        "C. 增加云端数据中心规模",
+        "D. 提高网络带宽"
+      ],
+      answer: "A"
+    },
+    {
+      id: 28,
+      question: "边缘计算技术的主要目标是什么？",
+      options: [
+        "A. 提高云计算性能",
+        "B. 减少网络带宽使用",
+        "C. 提高计算性能",
+        "D. 将计算资源推向用户端"
+      ],
+      answer: "B"
+    },
+    {
+      id: 29,
+      question: "边缘计算可以通过以下哪种方式来提高效率？",
+      options: [
+        "A. 设备数量",
+        "B. 传感器数量",
+        "C. 数据传输至云端的频率",
+        "D. 云端计算的复杂性"
+      ],
+      answer: "C"
+    },
+    {
+      id: 30,
+      question: "边缘计算可以用于改善哪种应用场景的性能？",
+      options: [
+        "A. 高带宽网络",
+        "B. 低延迟需求",
+        "C. 大规模数据存储",
+        "D. 云端服务器的负载均衡"
+      ],
+      answer: "B"
+    },
+    {
+      id: 31,
+      question: "边缘计算可以在哪个方面提供更好的可扩展性？",
+      options: ["A. 大规模批处理", "B. 实时数据处理", "C. 中央服务器", "D. 云端存储"],
+      answer: "B"
+    },
+    {
+      id: 32,
+      question: "边缘计算如何改善电子邮件服务的实时性需求？",
+      options: [
+        "A. 在云端存储所有邮件数据",
+        "B. 提高邮件传输速度",
+        "C. 在云端进行所有邮件处理",
+        "D. 减少邮件服务器数量"
+      ],
+      answer: "B"
+    },
+    {
+      id: 33,
+      question: "边缘计算如何改善教育领域的效率？",
+      options: [
+        "A. 提高学生上网速度",
+        "B. 提供更多在线课程",
+        "C. 在校园内实时分析学生学习数据",
+        "D. 在云端存储所有教育资源"
+      ],
+      answer: "C"
+    },
+    {
+      id: 34,
+      question: "边缘计算如何提高农业生产的效率？",
+      options: [
+        "A. 通过增加农业设备数量",
+        "B. 通过减少对云端的依赖",
+        "C. 通过增加传感器的数量",
+        "D. 通过将所有计算任务交给云端"
+      ],
+      answer: "B"
+    },
+    {
+      id: 35,
+      question: "边缘计算如何提高医疗设备的效率？",
+      options: [
+        "A. 在云端进行所有医疗数据分析",
+        "B. 提高医疗设备的精度",
+        "C. 在云端存储所有医疗数据",
+        "D. 提高医疗设备的运行效率"
+      ],
+      answer: "A"
+    },
+    {
+      id: 36,
+      question: "边缘计算如何提高物流管理的效率？",
+      options: [
+        "A. 减少货物运输速度",
+        "B. 提高仓库存储效率",
+        "C. 实时监测货物位置",
+        "D. 在云端进行所有物流规划"
+      ],
+      answer: "C"
+    },
+    {
+      id: 37,
+      question: "边缘计算如何提高智能音箱的实时性？",
+      options: [
+        "A. 在云端进行所有音频处理",
+        "B. 提高音频设备的分辨率",
+        "C. 实时监测音频播放状态",
+        "D. 在云端存储所有音频数据"
+      ],
+      answer: "A"
+    },
+    {
+      id: 38,
+      question: "边缘计算如何应用于智能电网？",
+      options: [
+        "A. 提高电力传输线路容量",
+        "B. 实时监测电力消耗",
+        "C. 增加发电站数量",
+        "D. 在云端进行电力负载均衡"
+      ],
+      answer: "B"
+    },
+    {
+      id: 39,
+      question: "边缘计算如何应用于智能交通系统？",
+      options: [
+        "A. 提高交通灯的流量",
+        "B. 实时调整交通灯的时序",
+        "C. 增加交通灯的功率",
+        "D. 在云端进行交通规划"
+      ],
+      answer: "B"
+    },
+    {
+      id: 40,
+      question: "边缘计算如何应用于智能交通系统中发挥作用？",
+      options: [
+        "A. 提高车辆最大速度",
+        "B. 减少实时处理数据的延迟",
+        "C. 增加交通灯数量",
+        "D. 在云端进行车辆轨迹分析"
+      ],
+      answer: "B"
+    },
+    {
+      id: 41,
+      question: "边缘计算如何降低哪种类型的成本？",
+      options: ["A. 能源成本", "B. 云计算成本", "C. 生产成本", "D. 设备成本"],
+      answer: "B"
+    },
+    {
+      id: 42,
+      question: "边缘计算有助于解决物联网设备中的哪个问题？",
+      options: [
+        "A. 网络连接不稳定",
+        "B. 设备价格过低",
+        "C. 数据存储容量不足",
+        "D. 传感器数量不足"
+      ],
+      answer: "A"
+    },
+    {
+      id: 43,
+      question: "边缘计算在哪个领域对于低延迟要求尤为关键？",
+      options: ["A. 电子商务", "B. 人脸识别", "C. 电影制作", "D. 财务服务"],
+      answer: "B"
+    },
+    {
+      id: 44,
+      question: "边缘计算在哪个领域对于提高工业自动化的可靠性尤为关键？",
+      options: ["A. 太空探索", "B. 制造业", "C. 农业", "D. 能源管理"],
+      answer: "B"
+    },
+    {
+      id: 45,
+      question: "边缘计算在哪个领域对于提高工业自动化效率尤为关键？",
+      options: ["A. 农业", "B. 医疗保健", "C. 能源管理", "D. 工业自动化"],
+      answer: "D"
+    },
+    {
+      id: 46,
+      question: "边缘计算在哪个领域对于提高物联网设备的性能尤为关键？",
+      options: ["A. 零售业", "B. 医疗保健", "C. 智能家居", "D. 安防领域"],
+      answer: "D"
+    },
+    {
+      id: 47,
+      question: "边缘计算在哪个领域对于提高视频监控的实时性尤为关键？",
+      options: ["A. 医疗保健", "B. 在线社交平台", "C. 大规模数据分析", "D. 智能家居"],
+      answer: "A"
+    },
+    {
+      id: 48,
+      question: "边缘计算在哪个领域对于提高医疗诊断的实时性尤为关键？",
+      options: ["A. 医疗保健", "B. 在线社交平台", "C. 大规模数据分析", "D. 智能家居"],
+      answer: "A"
+    },
+    {
+      id: 49,
+      question: "边缘计算在哪个领域对于提高音乐产业效果尤为关键？",
+      options: ["A. 在线音乐流媒体", "B. 电子商务", "C. 音乐制作", "D. 在云端进行音频处理"],
+      answer: "C"
+    },
+    {
+      id: 50,
+      question: "边缘计算在哪个领域对于提高在线视频游戏效果尤为关键？",
+      options: [
+        "A. 在线社交平台",
+        "B. 电子商务",
+        "C. 实时在线视频游戏",
+        "D. 在云端进行图形渲染"
+      ],
+      answer: "C"
+    },
+    {
+      id: 51,
+      question: "边缘计算在哪个领域对于物联网的大规模连接至关重要？",
+      options: ["A. 工业自动化", "B. 智能家居", "C. 医疗保健", "D. 农业"],
+      answer: "A"
+    },
+    {
+      id: 52,
+      question: "边缘计算在哪个领域可以提高智能音箱的实时性？",
+      options: ["A. 电子商务", "B. 在线音乐流媒体", "C. 医疗保健", "D. 金融服务"],
+      answer: "C"
+    },
+    {
+      id: 53,
+      question: "边缘计算在哪些方面可以提高工业自动化的效率？",
+      options: [
+        "A. 实时控制工业设备",
+        "B. 提高工人数量",
+        "C. 在云端进行生产计划分析",
+        "D. 通过增加机器数量提高产能"
+      ],
+      answer: "A"
+    },
+    {
+      id: 54,
+      question: "边缘计算在物联网中的作用是什么？",
+      options: [
+        "A. 在远程服务器上处理",
+        "B. 实时分析数据",
+        "C. 在云端存储数据",
+        "D. 在网络边缘执行计算"
+      ],
+      answer: "D"
+    },
+    {
+      id: 55,
+      question: "边缘计算中，“边缘”通常指的是什么？",
+      options: [
+        "A. 云端数据中心",
+        "B. 设备或传感器附近",
+        "C. 电源和网络接口",
+        "D. 无线通信网络"
+      ],
+      answer: "B"
+    },
+    {
+      id: 56,
+      question: "边缘技术在工业互联网中的应用可以提高哪些方面的效率？",
+      options: ["A. 数据处理", "B. 数据传输", "C. 设备控制", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 57,
+      question: "边缘技术在工业互联网中的应用主要是？",
+      options: ["A. 数据存储", "B. 数据处理", "C. 数据传输", "D. 设备控制"],
+      answer: "B"
+    },
+    {
+      id: 58,
+      question: "当电控球阀的电动执行器输入10mA的标准信号时，球阀的开度是？",
+      options: ["A. 90°", "B. 45°", "C. 33.75°", "D. 33°"],
+      answer: "C"
+    },
+    {
+      id: 59,
+      question: "电压型电流互感器量程设置为100V、5A，从模块中读取到的电流数值为2708，实际电流值为多少？",
+      options: ["A. 1.354A", "B. 11.705A", "C. 4.996A", "D. 4.580A"],
+      answer: "C"
+    },
+    {
+      id: 60,
+      question: "工业大数据采集的起源可以追溯到哪个时期？",
+      options: [
+        "A. 工业革命时期",
+        "B. 计算机时代初期",
+        "C. 互联网时代初期",
+        "D. 大数据时代初期"
+      ],
+      answer: "A"
+    },
+    {
+      id: 61,
+      question: "工业大数据采集技术的最早应用可以追溯到哪个行业？",
+      options: [
+        "A. 航空航天行业",
+        "B. 石油化工行业",
+        "C. 钢铁制造业",
+        "D. 汽车制造业"
+      ],
+      answer: "D"
+    },
+    {
+      id: 62,
+      question: "工业大数据采集在哪个历史时期得到了快速发展？",
+      options: [
+        "A. 21世纪初的大数据时代初期",
+        "B. 20世纪中期的计算机时代初期",
+        "C. 20世纪初的福特流水线生产方式时期",
+        "D. 19世纪末的电气化革命时期"
+      ],
+      answer: "A"
+    },
+    {
+      id: 63,
+      question: "工业互联网边缘计算的定义是什么？",
+      options: [
+        "A. 在网络边缘执行计算任务的技术",
+        "B. 实时分析工业数据的技术",
+        "C. 所有以上",
+        "D. 以上都不是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 64,
+      question: "工业互联网边缘计算的主要优势是什么？",
+      options: [
+        "A. 提高数据处理速度",
+        "B. 降低网络延迟",
+        "C. 减少能源消耗",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 65,
+      question: "工业互联网边缘计算可以支持哪些类型的应用程序？",
+      options: ["A. 实时应用", "B. 批处理应用", "C. 分布式应用", "D. 所有类型的应用"],
+      answer: "D"
+    },
+    {
+      id: 66,
+      question: "工业互联网边缘计算如何提高产品质量？",
+      options: [
+        "A. 实时监测生产过程",
+        "B. 分析生产数据",
+        "C. 优化生产参数",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 67,
+      question: "工业互联网边缘计算如何提高设备维护效率？",
+      options: [
+        "A. 实时监测设备状态",
+        "B. 分析历史数据",
+        "C. 提供远程诊断和维修支持",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 68,
+      question: "工业互联网边缘计算如何提高生产过程的可靠性？",
+      options: [
+        "A. 实时监控设备状态",
+        "B. 分析历史数据",
+        "C. 优化生产计划",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 69,
+      question: "工业互联网边缘计算如何实现故障预测？",
+      options: [
+        "A. 实时监控设备状态",
+        "B. 分析历史数据",
+        "C. 基于机器学习预测故障",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 70,
+      question: "工业互联网边缘计算如何实现节能降耗？",
+      options: [
+        "A. 实时监控能源消耗",
+        "B. 优化生产过程能耗",
+        "C. 提高设备运行效率",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 71,
+      question: "工业互联网边缘计算如何支持人才培训？",
+      options: [
+        "A. 实时监控培训过程",
+        "B. 分析培训数据",
+        "C. 优化教学资源分配",
+        "D. 以上都是"
+      ],
+      answer: "B"
+    },
+    {
+      id: 72,
+      question: "工业互联网的核心技术是什么？",
+      options: ["A. 物联网", "B. 大数据", "C. 云计算", "D. 人工智能"],
+      answer: "A"
+    },
+    {
+      id: 73,
+      question: "工业互联网的快速发展主要得益于哪些技术的进步？",
+      options: ["A. 物联网技术", "B. 云计算技术", "C. 大数据技术", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 74,
+      question: "工业互联网的数据采集主要分为哪几类？",
+      options: ["A. 感知层数据采集", "B. 平台层数据采集", "C. 应用层数据采集", "D. 全部都是"],
+      answer: "D"
+    },
+    {
+      id: 75,
+      question: "工业互联网的数据采集主要依靠什么实现？",
+      options: ["A. 人工巡检", "B. 传感器", "C. 视频监控", "D. 以上都是"],
+      answer: "B"
+    },
+    {
+      id: 76,
+      question: "工业互联网的数据处理主要包括哪些方面？",
+      options: ["A. 数据清洗", "B. 数据存储", "C. 数据分析", "D. 数据可视化"],
+      answer: "C"
+    },
+    {
+      id: 77,
+      question: "工业互联网的网络架构分为哪两个层次？",
+      options: [
+        "A. 网络互联、数据互通",
+        "B. 工业互联、数据互通",
+        "C. 数据互通、平台互通",
+        "D. 数据安全、数据互通"
+      ],
+      answer: "A"
+    },
+    {
+      id: 78,
+      question: "工业互联网的应用领域主要包括哪些？",
+      options: ["A. 智能制造", "B. 智慧能源", "C. 智慧交通", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 79,
+      question: "工业互联网平台的安全保障主要包括哪些方面？",
+      options: ["A. 数据安全", "B. 设备安全", "C. 应用安全", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 80,
+      question: "工业互联网平台的核心技术不包括哪项？",
+      options: ["A. 物联网技术", "B. 云计算技术", "C. 大数据技术", "D. 人工智能技术"],
+      answer: "A"
+    },
+    {
+      id: 81,
+      question: "工业互联网平台的作用不包括？",
+      options: ["A. 数据采集", "B. 数据处理", "C. 应用开发", "D. 设备维护"],
+      answer: "A"
+    },
+    {
+      id: 82,
+      question: "工业现场数据采集在环保方面的应用有哪些？",
+      options: ["A. 污染源监测", "B. 能源消耗监测", "C. 排放物监测", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 83,
+      question: "可编程控制器（PLC）基本结构包括哪些模块？",
+      options: ["A. CPU", "B. 存储器", "C. 输入/输出模块", "D. 以上全是"],
+      answer: "D"
+    },
+    {
+      id: 84,
+      question: "什么是边缘计算的主要目标？",
+      options: [
+        "A. 提高云计算性能",
+        "B. 减少网络带宽使用",
+        "C. 提高计算性能",
+        "D. 将计算资源推向用户端"
+      ],
+      answer: "B"
+    },
+    {
+      id: 85,
+      question: "没有控制单元的设备，控制器接口不开放的设备，不具备扩展功能的旧设备一般采用什么采集方式？",
+      options: ["A. 工业网关采集", "B. IO采集", "C. 系统对接采集", "D. 人工采集"],
+      answer: "B"
+    },
+    {
+      id: 86,
+      question: "某工厂拥有15个可以进行I/O控制的设备以及2个远程I/O控制器，工厂想将设备通过多个控制器使用ModBus TCP协议连接到AloT，则在AloT中需要建立多少个通道？",
+      options: ["A. 15个", "B. 17个", "C. 2个", "D. 1个"],
+      answer: "C"
+    },
+    {
+      id: 87,
+      question: "某工厂拥有3套PLC，每PLC下面有15个设备，现使用友友AloT完成这3套PLC、45设备的数据采集，若采用OPC UA协议，则需要在AloT平台上建立多少个通道？",
+      options: ["A. 15个", "B. 45个", "C. 3个", "D. 48个"],
+      answer: "C"
+    },
+    {
+      id: 88,
+      question: "目前已知一台设备名为A，只能通过其进行数据采集，支持ModBus RTU协议，连接至智能网关COM1口，设备地址为1，寄存器地址为9600，采集参数地址为5和15，其余无特殊要求，需要如何在AloT上配置通道？",
+      options: [
+        "A. 驱动：ModBus RTU；串口号：COM1；波特率：9600；站号：1；是否批量：false；线圈范围：1,10",
+        "B. 驱动：ModBus RTU；串口号：COM1；波特率：9600；站号：1；是否批量：true；线圈范围：1,20",
+        "C. 驱动：ModBus RTU；串口号：COM1；波特率：9600；站号：1；是否批量：true；线圈范围：1,10",
+        "D. 驱动：ModBus RTU；串口号：COM1；波特率：9600；站号：1；是否批量：true；线圈范围：1,10"
+      ],
+      answer: "C"
+    },
+    {
+      id: 89,
+      question: "请分析工业现场数据采集技术在未来发展趋势？",
+      options: ["A. 高度智能化", "B. 边缘计算的应用", "C. 数据传输速度的提高", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 90,
+      question: "请解释工业现场数据采集中的“边缘计算”概念。",
+      options: [
+        "A. 在工业现场设备上进行数据处理和分析",
+        "B. 在云端进行数据处理和分析",
+        "C. 采用分布式计算",
+        "D. 以上都是"
+      ],
+      answer: "A"
+    },
+    {
+      id: 91,
+      question: "请谈谈你对工业现场数据采集的理解。",
+      options: [
+        "A. 数据采集是工业发展的重要基础",
+        "B. 数据采集有助于实现生产过程的智能化",
+        "C. 数据采集对提高生产效率和质量有积极作用",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 92,
+      question: "如果企业未按照规定存储和处理工业大数据，可能会面临的风险或处罚情况是？",
+      options: [
+        "A. 企业未按照规定采集和处理工业大数据",
+        "B. 企业未按照规定存储和处理工业大数据",
+        "C. 企业未按照规定采集和处理工业大数据",
+        "D. 企业未按照规定存储和处理工业大数据"
+      ],
+      answer: "D"
+    },
+    {
+      id: 93,
+      question: "如何确保工业现场数据采集的安全性？",
+      options: [
+        "A. 采用加密传输技术",
+        "B. 设置访问权限",
+        "C. 定期更新安全补丁",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 94,
+      question: "如何实现工业现场数据采集的自动化？",
+      options: [
+        "A. 使用自动采集装置",
+        "B. 引入机器学习技术",
+        "C. 远程监控系统",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 95,
+      question: "若PLC的IP地址为192.168.1.1，则AloT的IP地址应为？",
+      options: [
+        "A. 192.168.1.0",
+        "B. 192.168.0.21",
+        "C. 192.168.1.1",
+        "D. 192.198.0.21"
+      ],
+      answer: "B"
+    },
+    {
+      id: 96,
+      question: "若要采集一个设备的10个参数，则需要创建多少个设备？",
+      options: ["A. 10个", "B. 11个", "C. 1个", "D. 9个"],
+      answer: "C"
+    },
+    {
+      id: 97,
+      question: "时间敏感网络（TSN）为解决工业领域中的哪个问题而孕育而生？",
+      options: ["A. 互协调性", "B. 统一性", "C. 互操作性", "D. 高效性"],
+      answer: "C"
+    },
+    {
+      id: 98,
+      question: "实现物联网在工业设备中的主要挑战是什么？",
+      options: [
+        "A. 设备之间的互操作性不足",
+        "B. 高昂的实施成本",
+        "C. 数据隐私和安全问题",
+        "D. 可扩展性有限"
+      ],
+      answer: "C"
+    },
+    {
+      id: 99,
+      question: "物联网中数据聚合的主要目的是？",
+      options: [
+        "A. 确保数据安全",
+        "B. 压缩数据以节省存储空间",
+        "C. 结合和汇总来自多个来源的数据",
+        "D. 分析实时数据"
+      ],
+      answer: "C"
+    },
+    {
+      id: 100,
+      question: "下列对485集线器描述正确的是？",
+      options: [
+        "A. 集线器是一种共享设备，本身具有识别目的地址的功能",
+        "B. 通过集线器对信号进行转发，使所有连接设备之间可以相互通讯",
+        "C. 集线器不按照网络协议进行分类",
+        "D. 以上都是"
+      ],
+      answer: "B"
+    },
+    {
+      id: 101,
+      question: "下列对时序数据库描述正确的是？",
+      options: [
+        "A. 1s可处理1万至10万个写入请求",
+        "B. 描述通过数字模型进行计算描述",
+        "C. 采用一定的存储策略（如环形存储结构）",
+        "D. 以上全是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 102,
+      question: "下列对现场总线描述正确的是？",
+      options: [
+        "A. 在工业环境的自动化控制及过程控制中应用以太网的相关组件及技术",
+        "B. 现场总线有统一标准，彼此的开放性和互操作性基本统一",
+        "C. CC-Link、PROFIBUS、HART、MODBUS都属于现场总线",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 103,
+      question: "下列对工业以太网描述正确的是？",
+      options: [
+        "A. 工业以太网是基于普通以太网的工业网络，具有实时性、可靠性和抗干扰能力",
+        "B. 工业以太网支持多种通信协议，如TCP/IP、UDP等",
+        "C. 工业以太网可以连接各种工业设备，如PLC、传感器、执行器等",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 104,
+      question: "PCN通过无线接入，采用自组态环网，点到多点传输架构，终端接入，适合于？",
+      options: ["A. 工业环境", "B. 商业环境", "C. 家庭环境", "D. 以上都是"],
+      answer: "A"
+    },
+    {
+      id: 105,
+      question: "以下是用友物联网平台AloT的价值？",
+      options: [
+        "A. 降低数据采集成本",
+        "B. 提高数据的加工处理能力",
+        "C. 提供正交法服务",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 106,
+      question: "以下哪一项不是企业使用大数据时需要考虑的因素？",
+      options: ["A. 环保要求", "B. 社会效益", "C. 经济效益", "D. 技术可行性"],
+      answer: "A"
+    },
+    {
+      id: 107,
+      question: "以下哪个事件标志着工业大数据采集进入了一个新的阶段？",
+      options: [
+        "A. 19世纪初的蒸汽机发明",
+        "B. 20世纪初的福特流水线生产方式",
+        "C. 21世纪初的物联网技术发展",
+        "D. 2010年左右的大数据技术兴起"
+      ],
+      answer: "D"
+    },
+    {
+      id: 108,
+      question: "以下哪个不是边缘计算的典型应用场景？",
+      options: [
+        "A. 大规模数据分析",
+        "B. 实时视频监控",
+        "C. 传统企业文件管理",
+        "D. 云端人工智能模型训练"
+      ],
+      answer: "B"
+    },
+    {
+      id: 109,
+      question: "以下哪个设备需要配置485集线器接入AloT平台，设备支持ModBus RTU通讯，需要在AloT平台上建立多少个通道？",
+      options: ["A. 1个", "B. 6个", "C. 5个", "D. 10个"],
+      answer: "C"
+    },
+    {
+      id: 110,
+      question: "已知某报警灯，输入输出为开关量，我们需要对其“红灯”完成采集与控制功能，则需要如何接入I/O控制器？",
+      options: [
+        "A. 将“红灯”信号线接入任意DI口即可",
+        "B. 将“红灯”信号线接入任意AI口即可",
+        "C. 将“红灯”信号线接入任意DO口即可",
+        "D. 将“红灯”信号线接入RS485接口"
+      ],
+      answer: "C"
+    },
+    {
+      id: 111,
+      question: "已知某公司需求，当环境温度高于40℃时会报警，5秒后自动开启制冷系统，该逻辑需要用到规则引擎的哪些数据处理组件？",
+      options: ["A. 延迟运行", "B. 函数处理", "C. 分支判断", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 112,
+      question: "已知使用某设备所采集的数据进行规则引擎计算后产生两个新的数据，则创建几个设备属性用于存储新数据？",
+      options: ["A. 1个", "B. 2个", "C. 3个", "D. 不需要创建"],
+      answer: "B"
+    },
+    {
+      id: 113,
+      question: "已知某PLC通过OPC UA协议与AloT完成通讯，该PLC同时连接有13个设备，若AloT分别采集13个设备的数据则应在平台中创建多少设备？",
+      options: ["A. 14个", "B. 13个", "C. 4个", "D. 12个"],
+      answer: "B"
+    },
+    {
+      id: 114,
+      question: "已知某PLC作为OPC UA服务器端，与AloT进行通讯，ns默认为2，PLC中OPC UA属性分别为节点：http://服务器接口_1=13, http://服务器接口_1=14, http://服务器接口_1=5，则在AloT中建立设备属性时ns的值应填写为？",
+      options: [
+        "A. ns=4;i=13, ns=4;i=14, ns=4;i=5",
+        "B. ns=2;i=13, ns=2;i=14, ns=2;i=5",
+        "C. ns=2;i=13, ns=2;i=14, ns=2;i=5",
+        "D. ns=2;i=14, ns=2;i=5"
+      ],
+      answer: "C"
+    },
+    {
+      id: 115,
+      question: "已知一传感器，通道和设备参数均配置完毕并且正确，若想完成数据采集还需要？",
+      options: ["A. 手动启动", "B. 启动采集功能，无需任何操作", "C. 其它操作", "D. 以上都不是"],
+      answer: "C"
+    },
+    {
+      id: 116,
+      question: "已知一设备输入和输出均为4-20mA电流模拟量信号，则接入本次实验所用的PLC模块为？",
+      options: [
+        "A. 中央处理器模块：DI, DQ",
+        "B. 中央处理器模块：AI, AQ",
+        "C. 模拟量输入输出模块：AI, AQ",
+        "D. 模块电流信号：AI, AQ"
+      ],
+      answer: "C"
+    },
+    {
+      id: 117,
+      question: "以下关于工业大数据采集的描述中，正确的是？",
+      options: [
+        "A. 需要遵守相关法规和标准",
+        "B. 不需要遵守任何法规或标准",
+        "C. 可以随意使用数据，无需考虑合法性",
+        "D. 数据的安全性和隐私不重要"
+      ],
+      answer: "A"
+    },
+    {
+      id: 118,
+      question: "以下哪个边缘计算架构不属于工业互联网？",
+      options: ["A. 边缘网关", "B. 边缘控制器", "C. 边缘路由器", "D. 所有以上"],
+      answer: "A"
+    },
+    {
+      id: 119,
+      question: "以下哪个编程语言在工业互联网边缘计算中应用较多？",
+      options: ["A. Python", "B. C++", "C. Java", "D. PHP"],
+      answer: "A"
+    },
+    {
+      id: 120,
+      question: "以下哪个不是边缘计算的典型应用场景？",
+      options: ["A. 智能城市", "B. 科学研究", "C. 传统企业文件管理", "D. 工业自动化"],
+      answer: "C"
+    },
+    {
+      id: 121,
+      question: "以下哪个不是边缘计算的典型应用场景？",
+      options: ["A. 人脸识别", "B. 物联网设备监控", "C. 文件管理", "D. 医疗诊断"],
+      answer: "C"
+    },
+    {
+      id: 122,
+      question: "以下哪个不是边缘计算的关键特征之一？",
+      options: ["A. 低延迟", "B. 高带宽网络", "C. 低安全性", "D. 数据隐私保护"],
+      answer: "C"
+    },
+    {
+      id: 123,
+      question: "以下哪个不是边缘计算的应用场景？",
+      options: ["A. 电子邮件服务", "B. 智能城市", "C. 工业自动化", "D. 大规模数据分析"],
+      answer: "A"
+    },
+    {
+      id: 124,
+      question: "以下哪个不是工业互联网的关键技术？",
+      options: ["A. 传感器技术", "B. 云计算", "C. 人工智能", "D. 数据库管理"],
+      answer: "D"
+    },
+    {
+      id: 125,
+      question: "以下哪个不是工业互联网数据采集的案例？",
+      options: ["A. 传感器采集", "B. 手动输入采集", "C. API接口采集", "D. 网络爬虫采集"],
+      answer: "B"
+    },
+    {
+      id: 126,
+      question: "以下哪个不是工业互联网数据采集的主要方法？",
+      options: ["A. 传感器采集", "B. 手动输入采集", "C. API接口采集", "D. 网络爬虫采集"],
+      answer: "B"
+    },
+    {
+      id: 127,
+      question: "以下哪个云服务提供商在工业互联网边缘计算方面具有优势？",
+      options: ["A. 亚马逊AWS", "B. 微软Azure", "C. 谷歌Cloud", "D. 中国电信天翼云"],
+      answer: "D"
+    },
+    {
+      id: 128,
+      question: "以下哪项不是进行数据采集的设备调研需要了解的主要内容？",
+      options: [
+        "A. 设备的工业通信协议",
+        "B. 设备的操作人员",
+        "C. 控制设备有无源程序或点表",
+        "D. 设备的通信接口类型"
+      ],
+      answer: "B"
+    },
+    {
+      id: 129,
+      question: "以下哪个不属于物联网系统的典型组成部分？",
+      options: ["A. 传感器", "B. 云计算", "C. 数据分析", "D. 打印机"],
+      answer: "D"
+    },
+    {
+      id: 130,
+      question: "以下哪个不属于工业互联网数据采集的典型场景？",
+      options: ["A. 智能工厂", "B. 智能物流", "C. 智能家居", "D. 太空探索"],
+      answer: "D"
+    },
+    {
+      id: 131,
+      question: "以下哪个不属于工业互联网的数据采集对象？",
+      options: ["A. 传感器", "B. 控制器", "C. 云计算", "D. 数据库"],
+      answer: "C"
+    },
+    {
+      id: 132,
+      question: "以下哪个不属于工业互联网的数据采集与传输设备？",
+      options: ["A. 传感器", "B. 控制器", "C. 云计算", "D. 智能手机"],
+      answer: "D"
+    },
+    {
+      id: 133,
+      question: "以下哪项不属于工业互联网平台的四大功能？",
+      options: ["A. 数据采集", "B. 数据存储", "C. 数据处理", "D. 数据展示"],
+      answer: "D"
+    },
+    {
+      id: 134,
+      question: "以下哪项不属于工业互联网平台的四大功能？",
+      options: ["A. 设备连接层", "B. 数据管理层", "C. 应用服务层", "D. 企业运营层"],
+      answer: "D"
+    },
+    {
+      id: 135,
+      question: "以下哪项不属于工业控制系统的三个层次？",
+      options: ["A. 现场层", "B. 操作层", "C. 管理层", "D. 技术层"],
+      answer: "D"
+    },
+    {
+      id: 136,
+      question: "以下哪项不属于数据采集设备的分类？",
+      options: ["A. 温度传感器", "B. 压力传感器", "C. 湿度传感器", "D. 路由器"],
+      answer: "D"
+    },
+    {
+      id: 137,
+      question: "以下哪项不属于数据采集系统的性能指标？",
+      options: ["A. 采集精度", "B. 采集速率", "C. 传输速率", "D. 存储容量"],
+      answer: "D"
+    },
+    {
+      id: 138,
+      question: "以下哪项不属于数据采集系统的组成部分？",
+      options: ["A. 数据采集设备", "B. 数据传输设备", "C. 数据处理设备", "D. 人工智能"],
+      answer: "D"
+    },
+    {
+      id: 139,
+      question: "以下哪项技术不属于工业互联网的关键技术？",
+      options: ["A. 传感器技术", "B. 无线通信技术", "C. 信息安全技术", "D. 量子计算技术"],
+      answer: "D"
+    },
+    {
+      id: 140,
+      question: "以下哪项技术不属于数据采集的无线通信技术？",
+      options: ["A. 蓝牙", "B. Wi-Fi", "C. 5G", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 141,
+      question: "以下哪项技术不属于数据采集的有线通信技术？",
+      options: ["A. RS-485", "B. 以太网", "C. 光纤", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 142,
+      question: "以下哪项技术不属于数据展示的？",
+      options: ["A. 图表", "B. 图像", "C. 声音", "D. 以上都是"],
+      answer: "A"
+    },
+    {
+      id: 143,
+      question: "以下哪项不是工业设备中物联网应用的示例？",
+      options: ["A. 智能恒温器", "B. 家庭安全系统", "C. 预测性维护", "D. 健身追踪器"],
+      answer: "C"
+    },
+    {
+      id: 144,
+      question: "以下哪些方法可以提高工业现场数据采集的效率？",
+      options: ["A. 采用多线程技术", "B. 使用高速数据传输设备", "C. 优化数据采集算法", "D. 全部以上"],
+      answer: "D"
+    },
+    {
+      id: 145,
+      question: "以下哪些工业协议常用于工业现场数据采集？",
+      options: ["A. Modbus", "B. Profibus", "C. OPC UA", "D. All of the above"],
+      answer: "D"
+    },
+    {
+      id: 146,
+      question: "以下哪些技术属于工业现场数据采集的关键技术？",
+      options: ["A. 传感器技术", "B. 工业以太网技术", "C. 人工智能技术", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 147,
+      question: "以下哪些设备可用于工业现场数据采集？",
+      options: ["A. PLC, PDA", "B. SCADA", "C. DCS", "D. 工业相机"],
+      answer: "D"
+    },
+    {
+      id: 148,
+      question: "以下哪些信号属于模拟信号？",
+      options: ["A. 温度信号、压力信号", "B. 数字信号", "C. 4G信号", "D. 频率信号"],
+      answer: "A"
+    },
+    {
+      id: 149,
+      question: "以下哪种传感器适用于湿度检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 压力传感器", "D. 湿度传感器"],
+      answer: "B"
+    },
+    {
+      id: 150,
+      question: "以下哪种传感器适用于光照检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 流量传感器", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 151,
+      question: "以下哪种传感器适用于气体浓度检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 电化学传感器", "D. 超声波传感器"],
+      answer: "C"
+    },
+    {
+      id: 152,
+      question: "以下哪种传感器适用于湿度检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 电容式传感器", "D. 超声波传感器"],
+      answer: "C"
+    },
+    {
+      id: 153,
+      question: "以下哪种传感器适用于速度检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 霍尔传感器", "D. 激光传感器"],
+      answer: "C"
+    },
+    {
+      id: 154,
+      question: "以下哪种传感器适用于位移检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 电阻式传感器", "D. 电容式传感器"],
+      answer: "C"
+    },
+    {
+      id: 155,
+      question: "以下哪种传感器适用于压力检测？",
+      options: ["A. 光电传感器", "B. 红外传感器", "C. 电容式传感器", "D. 超声波传感器"],
+      answer: "C"
+    },
+    {
+      id: 156,
+      question: "以下哪种设备不属于工业现场数据采集设备？",
+      options: ["A. 传感器", "B. PLC", "C. 个人电脑", "D. 智能手机"],
+      answer: "D"
+    },
+    {
+      id: 157,
+      question: "以下哪种通信方式在工业现场数据采集系统中应用较为广泛？",
+      options: ["A. 蓝牙", "B. Wi-Fi", "C. ZigBee", "D. GPS"],
+      answer: "C"
+    },
+    {
+      id: 158,
+      question: "用友物联网平台AloT包含哪些模块？",
+      options: ["A. 设备物联", "B. YonBuilder低代码开发平台", "C. 规则引擎", "D. 以上全是"],
+      answer: "D"
+    },
+    {
+      id: 159,
+      question: "用友物联网平台AloT具有哪些运营模式？",
+      options: ["A. 公有云", "B. 私有云", "C. 混合云", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 160,
+      question: "用友物联网平台AloT具有哪些特性？",
+      options: ["A. 全面的协议支持", "B. 实时数据存储及发布", "C. 2D/3D组态", "D. 以上全是"],
+      answer: "D"
+    },
+    {
+      id: 161,
+      question: "用友物联网平台AloT通过规则引擎解决了什么问题？",
+      options: ["A. 数据处理问题", "B. 数据分发问题", "C. 自动控制问题", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 162,
+      question: "边缘计算对网络安全有何影响？",
+      options: ["A. 提高安全性", "B. 不影响安全性", "C. 降低安全性", "D. 只影响云端安全性"],
+      answer: "A"
+    },
+    {
+      id: 163,
+      question: "边缘计算如何提高物联网（IoT）设备的效率？",
+      options: [
+        "A. 通过增加数据传输至云端",
+        "B. 通过减少对设备的依赖",
+        "C. 通过降低设备的成本",
+        "D. 通过在云端进行大规模计算"
+      ],
+      answer: "B"
+    },
+    {
+      id: 164,
+      question: "边缘计算如何有助于减少网络流量？",
+      options: [
+        "A. 将所有数据存储在云端",
+        "B. 只使用高带宽网络连接",
+        "C. 在边缘设备上进行数据过滤和摘要，减少传输量",
+        "D. 使用更多的数据包进行传输"
+      ],
+      answer: "C"
+    },
+    {
+      id: 165,
+      question: "边缘计算相对于云计算的优势是什么？",
+      options: ["A. 更低的计算能力", "B. 更大的存储容量", "C. 低延迟和实时处理", "D. 更高的网络带宽"],
+      answer: "C"
+    },
+    {
+      id: 166,
+      question: "边缘计算中，“边缘节点”通常指的是什么？",
+      options: ["A. 云端数据中心", "B. 传感器", "C. 电源和网络接口", "D. 无线通信网络"],
+      answer: "B"
+    },
+    {
+      id: 167,
+      question: "在工业大数据采集过程中，下列哪一项不是职业素养的体现？",
+      options: [
+        "A. 具备扎实的专业知识和技能",
+        "B. 具备良好的沟通能力和团队合作能力",
+        "C. 具备严谨细致的工作态度",
+        "D. 具备较高的英语水平"
+      ],
+      answer: "D"
+    },
+    {
+      id: 168,
+      question: "在工业大数据采集过程中，下列哪一项不是职业素养的重要体现？",
+      options: [
+        "A. 提高数据质量",
+        "B. 保护数据安全",
+        "C. 遵守法律和道德规范",
+        "D. 提升个人技能水平"
+      ],
+      answer: "D"
+    },
+    {
+      id: 169,
+      question: "在工业大数据采集技术的发展过程中，下列哪一项技术起到了关键的推动作用？",
+      options: [
+        "A. 云计算技术",
+        "B. 数据挖掘和分析技术",
+        "C. 大数据存储技术",
+        "D. 物联网技术"
+      ],
+      answer: "B"
+    },
+    {
+      id: 170,
+      question: "在工业大数据应用过程中，下列哪一项不是职业素养对个人隐私的保护措施？",
+      options: [
+        "A. 去标识化处理数据",
+        "B. 无条件共享和使用数据",
+        "C. 加密存储个人数据",
+        "D. 限制数据访问权限"
+      ],
+      answer: "B"
+    },
+    {
+      id: 171,
+      question: "在工业大数据应用过程中，下列哪一项不是职业素养对数据安全的要求？",
+      options: [
+        "A. 加密存储敏感数据",
+        "B. 限制数据访问权限",
+        "C. 保护个人隐私和企业商业机密",
+        "D. 无条件共享和使用数据"
+      ],
+      answer: "D"
+    },
+    {
+      id: 172,
+      question: "在工业互联网应用中，边缘技术的主要作用是什么？",
+      options: [
+        "A. 提高生产效率",
+        "B. 提高设备运行稳定性",
+        "C. 实现数据实时分析与处理",
+        "D. 降低生产成本"
+      ],
+      answer: "C"
+    },
+    {
+      id: 173,
+      question: "在工业互联网中，数据采集与传输的时间间隔应该如何选择？",
+      options: ["A. 越短越好", "B. 越长越好", "C. 根据实际需求选择", "D. 无所谓"],
+      answer: "C"
+    },
+    {
+      id: 174,
+      question: "在工业互联网中，数据采集与传输的安全性非常重要，以下哪项措施可以提高数据传输的安全性？",
+      options: ["A. 使用加密算法", "B. 增加传输速率", "C. 使用防火墙", "D. 以上都是"],
+      answer: "A"
+    },
+    {
+      id: 175,
+      question: "在工业互联网中，数据采集与传输的主要目的是什么？",
+      options: [
+        "A. 提高生产效率",
+        "B. 降低生产成本",
+        "C. 提高产品质量",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 176,
+      question: "在工业互联网中，数据采集与传输的主要手段有哪些？",
+      options: ["A. 有线通信", "B. 无线通信", "C. 卫星通信", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 177,
+      question: "在工业互联网中，数据采集与传输对生产过程有哪些影响？",
+      options: [
+        "A. 提高生产效率",
+        "B. 降低生产成本",
+        "C. 提高产品质量",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 178,
+      question: "在工业设备数据采集过程中，使用物联网的主要好处是什么？",
+      options: [
+        "A. 提高效率和生产力",
+        "B. 降低维护成本",
+        "C. 改善安全性和风险规避",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 179,
+      question: "在工业数据采集场景中，以下哪种联网方式较为合适？",
+      options: ["A. Wi-Fi", "B. 以太网", "C. 4G", "D. GPRS"],
+      answer: "B"
+    },
+    {
+      id: 180,
+      question: "在工业现场，以下哪些设备用于数据采集？",
+      options: ["A. PLC", "B. SCADA", "C. DCS", "D. 工业相机"],
+      answer: "D"
+    },
+    {
+      id: 181,
+      question: "在工业现场数据采集过程中，如何解决数据传输的延迟问题？",
+      options: [
+        "A. 使用高速数据传输设备",
+        "B. 优化数据传输协议",
+        "C. 采用实时操作系统",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 182,
+      question: "在工业现场数据采集系统中，以下哪个通信协议不属于串行通信协议？",
+      options: ["A. RS-232", "B. RS-485", "C. I2C", "D. USB"],
+      answer: "D"
+    },
+    {
+      id: 183,
+      question: "在工业现场数据采集系统中，以下哪个信号调理不属于模拟信号调理？",
+      options: ["A. 滤波", "B. 放大", "C. 模拟-数字转换", "D. 数字信号处理"],
+      answer: "C"
+    },
+    {
+      id: 184,
+      question: "在工业现场数据采集系统项目中，如何进行有效的团队协作？",
+      options: [
+        "A. 明确分工与职责",
+        "B. 建立沟通机制",
+        "C. 制定详细的项目计划",
+        "D. 以上都是"
+      ],
+      answer: "D"
+    },
+    {
+      id: 185,
+      question: "在每天的08:00-10:00时间段内周期性使用“注入数据”组件，则应使用什么注入规则？",
+      options: ["A. 无：不重复", "B. 周期性执行", "C. 指定时间段内周期性执行", "D. 指定时间"],
+      answer: "C"
+    },
+    {
+      id: 186,
+      question: "在哪个领域，边缘计算对于数据隐私性尤为重要？",
+      options: ["A. 科学研究", "B. 农业", "C. 医疗保健", "D. 财务服务"],
+      answer: "C"
+    },
+    {
+      id: 187,
+      question: "在哪个领域，边缘计算对于提高电子商务体验尤为关键？",
+      options: ["A. 在线社交平台", "B. 电子商务", "C. 农业", "D. 物流管理"],
+      answer: "B"
+    },
+    {
+      id: 188,
+      question: "在哪个领域，边缘计算对于提高在线视频游戏体验尤为关键？",
+      options: ["A. 在线社交平台", "B. 电子商务", "C. 实时在线视频游戏", "D. 在云端进行图形渲染"],
+      answer: "C"
+    },
+    {
+      id: 189,
+      question: "边缘计算在哪个领域对于提高高能物理的可持续性尤为关键？",
+      options: ["A. 餐饮业", "B. 制造业", "C. 音乐产业", "D. 电子商务"],
+      answer: "B"
+    },
+    {
+      id: 190,
+      question: "在哪个行业，边缘计算对于提高设备效率尤为关键？",
+      options: ["A. 餐饮业", "B. 制造业", "C. 音乐产业", "D. 电子商务"],
+      answer: "B"
+    },
+    {
+      id: 191,
+      question: "在哪个应用场景中，边缘计算对于提高安全监控效果尤为关键？",
+      options: ["A. 电子商务", "B. 工业自动化", "C. 智能家居", "D. 实时视频监控"],
+      answer: "D"
+    },
+    {
+      id: 192,
+      question: "在哪个应用场景中，边缘计算对于提高虚拟现实体验尤为关键？",
+      options: ["A. 在线社交平台", "B. 电子商务", "C. 实时在线虚拟现实游戏", "D. 在云端进行图形渲染"],
+      answer: "C"
+    },
+    {
+      id: 193,
+      question: "在哪种情况下，边缘计算比云计算更具优势？",
+      options: [
+        "A. 大规模批处理任务",
+        "B. 实时数据处理和低延迟要求",
+        "C. 数据存储需求高的场景",
+        "D. 对安全性要求不高的应用"
+      ],
+      answer: "B"
+    },
+    {
+      id: 194,
+      question: "在企业的生产经营活动中，设备管理的主要内容不包括以下哪一项？",
+      options: ["A. 设备资产及技术管理", "B. 设备缺陷管理", "C. 设备事故管理", "D. 人员信息管理"],
+      answer: "D"
+    },
+    {
+      id: 195,
+      question: "在物联网设备中常用的通信协议是？",
+      options: ["A. TCP/IP", "B. FTP", "C. HTTP", "D. MQTT"],
+      answer: "D"
+    },
+    {
+      id: 196,
+      question: "在智能城市中，边缘计算可以用于哪些方面？",
+      options: ["A. 交通流量监测", "B. 云端数据存储", "C. 虚拟现实体验", "D. 音乐制作"],
+      answer: "A"
+    },
+    {
+      id: 197,
+      question: "智能仪表物理实验，能否使用网线连接？",
+      options: ["A. 能", "B. 不能", "", ""],
+      answer: "A"
+    },
+    {
+      id: 198,
+      question: "注入数据组件主要是用来？",
+      options: ["A. 采集数据", "B. 采集数据", "C. 自动控制问题", "D. 以上都是"],
+      answer: "D"
+    },
+    {
+      id: 199,
+      question: "“ModBus协议支持传统的RS-232、RS-422、RS-485和以太网设备，许多工业设备，包括PLC、DCS、智能仪表等都在使用ModBus协议作为他们之间的通讯标准。”这句话是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 200,
+      question: "“工业通信协议是指工业控制领域内双方实体完成通信或服务所必须遵循的规则和约定。通过通信通道和设备互联组成的多个地理位置的数据通信系统，要使其能协同工作实现信息交换和资源共享，它们之间必须具有共同语言，交流什么、怎样交流及合适交流，都必须遵循某种都能接收的规则，这个规则就是工业通信协议。”这句话是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 201,
+      question: "“工业以太网最大的优势在于能够使企业的信息网络和控制网络实现统一，容易实现网络集成，开发技术广泛，价格低廉，容易获得众多厂商的支持。”这句话是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 202,
+      question: "“规则引擎支持无代码规则的创建和开发，如果遇到复杂的业务逻辑，可以使用JavaScript脚本进行逻辑的编写，通过功能块的拼接和搭配，完成规则的编写，实现用户的所有业务逻辑要求。”这句话是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 203,
+      question: "“应采用机器学习、神经网络等，实现设备运行模型的自学习、自优化”是G错误13911-2020《智能制造能力成熟度模型》标准中，设备管理的第四级。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 204,
+      question: "“远程I/O就是具有通信功能的数据采集/传输模块，自身具备控制调节功能，将现场数据送到控制中心，以及接受控制中心的指令或自主对现场设备进行控制。”这句话描述是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 205,
+      question: "AloT可以帮助工业设备实现自动化控制。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 206,
+      question: "AloT可以实现工业设备之间的远程通信和协同工作。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 207,
+      question: "AloT可以提高工业设备的运行效率。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 208,
+      question: "AloT是人工智能和物联网的结合。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 209,
+      question: "AloT通过OPC UA协议与PLC进行通讯时，配置通信的节点填写PLC所在的设备的地址是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 210,
+      question: "AloT在工业设备数据采集中的作用主要用于数据存储和处理。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 211,
+      question: "ModBus协议支持传统的RS-232、RS-422、RS-485和以太网设备，许多工业设备，包括PLC、DCS、智能仪表等都在使用ModBus协议作为他们之间的通讯标准。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 212,
+      question: "PLC可以根据预设的逻辑程序控制工业设备的运行。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 213,
+      question: "PLC可以实时监测和控制工业设备的运行状态。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 214,
+      question: "PLC可以通过传感器获取工业设备的数据。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 215,
+      question: "PLC是指程序控制器语言。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 216,
+      question: "PLC只能用于数字信号的控制。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 217,
+      question: "SQL数据库管理系统、Hadoop分布式计算系统、Python编程语言、R统计软件包等都是工业互联网数据采集的主要工具。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 218,
+      question: "安全监测数据采集用于监测和预警潜在的安全风险。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 219,
+      question: "本次I/O类设备物联实验，能否使用PC机控制RS485接口连接数据采集服务器？",
+      options: ["A. 能", "B. 不能", "", ""],
+      answer: "A"
+    },
+    {
+      id: 220,
+      question: "传感器技术、云计算、大数据、人工智能等都是工业互联网数据采集的主要技术手段。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 221,
+      question: "传感器数据采集是工业大数据采集的常见方向之一。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 222,
+      question: "从本课程看，工业4.0是在国家战略层面上实现工业价值创造的手段。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 223,
+      question: "从数据到信息到价值的转化过程中一个重要的概念是数据/信息价值链。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 224,
+      question: "对工厂外智能产品/装备的数据采集，主要用于实现智能产品的远程监控、健康状态监测和远程维护服务。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 225,
+      question: "对时序数据库的描述是否正确：实时数据库是采用实时数据模型建立起来的数据库，用于处理不断更新的快速变化的数据及具有时间限制的事务处理。实时数据库技术是实时系统和数据库技术相结合的产物，利用数据库技术来解决实时系统中的数据管理问题，同时利用实时技术为实时数据库提供时间驱动调度和资源分配算法。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 226,
+      question: "数据安全和隐私保护问题是工业互联网数据采集的主要挑战之一。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 227,
+      question: "数据安全和隐私保护问题是工业互联网数据采集的主要挑战之一。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 228,
+      question: "数据量大、处理复杂性高、数据类型多样、格式不统一、数据质量差、准确性低、数据安全性和隐私保护难以实现都是工业互联网数据采集的主要难点。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 229,
+      question: "数据采集、数据处理、数据分析、数据应用等都是工业互联网数据采集的主要步骤。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 230,
+      question: "提高生产效率和产品质量，降低生产成本，优化生产流程，提高资源利用效率是工业互联网数据采集的主要优势。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 231,
+      question: "完成智能仪表物联实验后进行北向导出，在云端建立一个父设备即可。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 232,
+      question: "下列对智能仪表物联实验设备参数编号分配是否正确：1：温度变送器；2：电流电压采集器；3：压力变送器",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 233,
+      question: "工业互联网数据采集的发展历程受到法律法规和政策的引导和规范。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 234,
+      question: "已知一传感器，适用ModBus RTU通信协议，通道配置已完成，需采集数据的十六进制起始地址为0008，则在AloT设备参数配置时起始地址填写0008和18是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 235,
+      question: "已知一传感器，通道和设备参数均已配置完毕并且正确，无需任何操作，AloT自动采集是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 236,
+      question: "用友物联网平台AloT不仅支持YonBIP系列产品也支持用友内其他产品系列，同时支持其他公司应用软件的集成",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 237,
+      question: "用友物联网平台AloT的五个“自驱动”是“设备自发现、设备自匹配、实例自生成、数据自采集、知识自学习”",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 238,
+      question: "远程I/O是具有通信功能的数据采集/传输模块，自身具备控制调节功能，将现场数据送到控制中心，以及接受控制中心的指令或自主对现场设备进行控制。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 239,
+      question: "在边缘端进行北向导出时，复制公共云父设备三元组时仅需复制其中一个就可以",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 240,
+      question: "在边缘端中设备名称为“a”，则在公共云中子设备名称也应该是“a”",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 241,
+      question: "在工业大数据采集和处理过程中，必须遵循数据保护原则和相关法律法规",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 242,
+      question: "在工业大数据采集和处理过程中，可以使用各种技术和工具来提高效率和准确性，但不需要考虑数据的安全性和隐私保护问题",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 243,
+      question: "在获取实时数据时，选取了三个位号，是否能使用“只输出位号的value”的输出方式",
+      options: ["A. 能", "B. 不能", "", ""],
+      answer: "B"
+    },
+    {
+      id: 244,
+      question: "在完成智能仪表物联实验的北向导出后，数据展示正常，若更改边缘端的设备名称或属性名称，则公共云中数据能否正常采集？",
+      options: ["A. 能", "B. 不能", "", ""],
+      answer: "B"
+    },
+    {
+      id: 245,
+      question: "窄带物联网是基于E-UTRAN技术，使用180MHz的载波传输带宽，支持低功耗设备在广域网的一种蜂窝数据连接技术，具备广覆盖、支持海量连接、支持低功耗、低速率、仅需低频段传输可覆盖30公里范围的特点，属于低功耗广域网的一种网络类型。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 246,
+      question: "只有采集足够大量的工业大数据，才能基于工业大数据做分析、处理、监控、智能决策等，才能实现数字化的价值。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 247,
+      question: "智能仪表核心功能之一是尽可能全地分析设备全生命周期内各类要素相关的数据和信息。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 248,
+      question: "智能仪表是计算机技术与测试技术相结合的产物，是含有微计算机或微处理器的仪器，它具有对数据的存储、运算、逻辑判断及自动化操作等功能，有的还具有自校正、自诊断、自适应、自学习的功能，具有一定智能的作用。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    },
+    {
+      id: 249,
+      question: "智能仪表物联实验，可以使用网线连接是否正确？",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "B"
+    },
+    {
+      id: 250,
+      question: "做工业数据采集需要遵循的两大原则是：目的性和经济性。",
+      options: ["A. 正确", "B. 错误", "", ""],
+      answer: "A"
+    }
+
+  ];
+      
+      // 存储随机打乱后的题目（每次考试初始化时生成）
+      let shuffledQuestions = [];
+      let userAnswers = {};
+      let results = {};
+
+      // 密码保护逻辑
+      const password = 'jy5247';
+      const passwordProtection = document.getElementById('password-protection');
+      const questionCountSelection = document.getElementById('question-count-selection');
+      const passwordInput = document.getElementById('password-input');
+      const passwordSubmit = document.getElementById('password-submit');
+      const errorMessage = document.getElementById('error-message');
+
+      passwordSubmit.addEventListener('click', function() {
+          if (passwordInput.value === password) {
+              passwordProtection.classList.add('hidden');
+              questionCountSelection.classList.remove('hidden');
+          } else {
+              errorMessage.style.display = 'block';
+              passwordInput.value = '';
+              passwordInput.focus();
+          }
+      });
+
+      // 题目数量选择逻辑
+      const questionCountInput = document.getElementById('question-count-input');
+      const questionCountSubmit = document.getElementById('question-count-submit');
+      const countErrorMessage = document.getElementById('count-error-message');
+      const examContent = document.getElementById('exam-content');
+
+      questionCountSubmit.addEventListener('click', function() {
+          const count = parseInt(questionCountInput.value);
+          if (isNaN(count) || count < 1 || count > originalQuestions.length) {
+              countErrorMessage.style.display = 'block';
+              return;
+          }
+          
+          questionCountSelection.classList.add('hidden');
+          examContent.classList.remove('hidden');
+          initExam(count);
+      });
+
+      // 洗牌函数：使用 Fisher-Yates 算法随机打乱数组顺序
+      function shuffle(array) {
+          let currentIndex = array.length, temporaryValue, randomIndex;
+          while (currentIndex !== 0) {
+              randomIndex = Math.floor(Math.random() * currentIndex);
+              currentIndex -= 1;
+              temporaryValue = array[currentIndex];
+              array[currentIndex] = array[randomIndex];
+              array[randomIndex] = temporaryValue;
+          }
+          return array;
+      }
+      
+      // 初始化考试：打乱题目顺序并动态生成题目
+      function initExam(count) {
+          // 克隆原始题库并打乱顺序
+          shuffledQuestions = shuffle(originalQuestions.slice(0, count));
+          
+          const examForm = document.getElementById('exam-form');
+          examForm.innerHTML = '';
+          
+          shuffledQuestions.forEach(q => {
+              const questionDiv = document.createElement('div');
+              questionDiv.className = 'question';
+              questionDiv.id = `question-${q.id}`;
+              
+              questionDiv.innerHTML = `
+                  <div class="question-title">${q.question}</div>
+                  <div class="options">
+                      ${q.options.map(option => `
+                          <div class="option">
+                              <label>
+                                  <input type="radio" name="question-${q.id}" value="${option.charAt(0)}">
+                                  ${option}
+                              </label>
+                          </div>
+                      `).join('')}
+                  </div>
+              `;
+              
+              examForm.appendChild(questionDiv);
+          });
+          
+          // 重置答案和结果
+          userAnswers = {};
+          results = {};
+          updateProgressBar();
+      }
+      
+      function updateProgressBar() {
+          const answered = Object.keys(userAnswers).length;
+          const total = shuffledQuestions.length;
+          const percentage = (answered / total) * 100;
+          document.getElementById('progress-bar').style.width = `${percentage}%`;
+      }
+      
+      function submitExam() {
+          // 检查是否所有题目均已作答，若发现漏答则滚动到第一个未答题目
+          for (let i = 0; i < shuffledQuestions.length; i++) {
+              const q = shuffledQuestions[i];
+              if (!userAnswers[q.id] || userAnswers[q.id] === '') {
+                  // 滚动至该题目位置
+                  const questionElem = document.getElementById(`question-${q.id}`);
+                  if (questionElem) {
+                      questionElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                  alert('请完成所有题目再提交答案！');
+                  return;
+              }
+          }
+          
+          // 若所有题目均已作答，则开始判断答案
+          let correct = 0;
+          
+          shuffledQuestions.forEach(q => {
+              const isCorrect = (userAnswers[q.id] === q.answer);
+              results[q.id] = {
+                  question: q,
+                  userAnswer: userAnswers[q.id] || '',
+                  isCorrect: isCorrect
+              };
+              if (isCorrect) {
+                  correct++;
+              }
+          });
+          
+          const accuracy = ((correct / shuffledQuestions.length) * 100).toFixed(1);
+          document.getElementById('score').textContent = correct;
+          document.getElementById('total').textContent = shuffledQuestions.length;
+          document.getElementById('accuracy').textContent = `${accuracy}%`;
+          
+          displayResults('all');
+          
+          // 隐藏考试内容，显示结果
+          document.getElementById('exam-form').style.display = 'none';
+          document.getElementById('submit-btn').style.display = 'none';
+          document.getElementById('results').style.display = 'block';
+          
+          // 滚动到页面顶部
+          window.scrollTo(0, 0);
+      }
+      
+      function displayResults(filter) {
+          const resultDetails = document.getElementById('result-details');
+          resultDetails.innerHTML = '';
+          
+          Object.values(results).forEach(result => {
+              if (filter === 'incorrect' && result.isCorrect) {
+                  return;
+              }
+              const resultDiv = document.createElement('div');
+              resultDiv.className = `question ${result.isCorrect ? 'correct' : 'incorrect'}`;
+              
+              resultDiv.innerHTML = `
+                  <div class="question-title">
+                      ${result.question.question}
+                      <span class="status">${result.isCorrect ? '✓ 正确' : '✗ 错误'}</span>
+                  </div>
+                  <div class="options">
+                      ${result.question.options.map(option => {
+                          const letter = option.charAt(0);
+                          let className = '';
+                          if (letter === result.question.answer) {
+                              className = 'correct';
+                          } else if (letter === result.userAnswer) {
+                              className = 'incorrect';
+                          }
+                          return `
+                              <div class="option ${className}">
+                                  ${option}
+                                  ${letter === result.question.answer ? ' ✓' : ''}
+                                  ${letter === result.userAnswer && letter !== result.question.answer ? ' ✗' : ''}
+                              </div>
+                          `;
+                      }).join('')}
+                  </div>
+              `;
+              resultDetails.appendChild(resultDiv);
+          });
+      }
+      
+      // 事件监听
+      document.getElementById('submit-btn').addEventListener('click', submitExam);
+      
+      document.getElementById('restart-btn').addEventListener('click', function() {
+          document.getElementById('exam-form').style.display = 'block';
+          document.getElementById('submit-btn').style.display = 'block';
+          document.getElementById('results').style.display = 'none';
+          initExam(shuffledQuestions.length);
+      });
+      
+      document.getElementById('reselect-btn').addEventListener('click', function() {
+          // 隐藏考试内容和结果，显示题目数量选择界面
+          examContent.classList.add('hidden');
+          questionCountSelection.classList.remove('hidden');
+          questionCountInput.value = '';
+          countErrorMessage.style.display = 'none';
+      });
+      
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+              document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+              this.classList.add('active');
+              displayResults(this.getAttribute('data-filter'));
+          });
+      });
+      
+      // 监听选项变化，记录用户答案
+      document.addEventListener('change', function(e) {
+          if (e.target.type === 'radio' && e.target.name.startsWith('question-')) {
+              const questionId = parseInt(e.target.name.replace('question-', ''));
+              userAnswers[questionId] = e.target.value;
+              updateProgressBar();
+          }
+      });
+  </script>
+</body>
+</html>
